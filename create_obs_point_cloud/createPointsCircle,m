@@ -1,1 +1,8 @@
-
+function points_cir = createPointsCircle( centre_point, raduis )
+%CREATEPLANE Summary of this function goes here
+%   Detailed explanation goes here
+    phi = 0:0.1:2*pi;
+    x = raduis*cos(phi) + centre_point(1,1);
+    y = raduis*sin(phi) + centre_point(2,1);
+    points_cir = [x; y];
+end
