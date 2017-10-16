@@ -2,13 +2,12 @@ function [sim_result, command_speed] = simPointMDS( obs_points, init_pose, targe
 %SIMPOINTMDS Summary of this function goes here
   %Detailed explanation goes here
   if bSaveAVI
-    writerObj=VideoWriter('square_squriouse_equilibram.avi');  %// 定义一个视频文件用来存动画  
-    open(writerObj);                    %// 打开该视频文件  
+    writerObj=VideoWriter('square_squriouse_equilibram.avi');  %// define an object to store the video  
+    open(writerObj);                    %// open this object
     %writeVideo(writerObj,rand(300));
   end
 
   if sim_dimention == 2
-      spourious_point = 0;
       arrived_target = 1;
       i=1;
       r = 0.4;
@@ -30,7 +29,7 @@ function [sim_result, command_speed] = simPointMDS( obs_points, init_pose, targe
           if speed == 0
               arrived_target = 0; 
           else
-              com_speed = calculateModulationSpeed(speed, init_pose, [100;100], obs_points, 2, spourious_point);
+              com_speed = calculateModulationSpeed(speed, init_pose, [100;100], obs_points, 2);
               command_speed(1,i) = norm(com_speed);
               command_speed(2,i) = 0.01*i;
 %               if norm(com_speed)<0.01
@@ -60,14 +59,6 @@ function [sim_result, command_speed] = simPointMDS( obs_points, init_pose, targe
       end
   end
   if sim_dimention == 3
-      %Robotic toolbox KUKA LWR IIWA
-      startup_rvc;
-      mdl_LWR;
-      %
-      global spourious_point;
-      spourious_point = 0;
-      clf;
-      pause(3);
       arrived_target_3 = 1;
       i=1;
       plot3(target_pose(1,1), target_pose(2,1), target_pose(3,1), 'r*','markersize',10);
@@ -93,34 +84,9 @@ function [sim_result, command_speed] = simPointMDS( obs_points, init_pose, targe
           if speed_3 == 0
               arrived_target_3 = 0; 
           else
-              if i==1
-                 q_seed = [0,1,0,-1.5,0,0.5,0];
-              end
-              jacob_LWR = LWR.jacob0(q_seed);
-              LWR_rpinv = pinv(jacob_LWR);
-              T_cp = LWR_partial.fkine([q_seed(1,1),q_seed(1,2),q_seed(1,3)]);
-              cp_position = [T_cp.t(1,1); T_cp.t(2,1); T_cp.t(3,1)];
-              jacob_LWR_partial = LWR_partial.jacob0([q_seed(1,1),q_seed(1,2),q_seed(1,3)]);
-              LWR_partial_rpinv = pinv(jacob_LWR_partial);
-              [ee_com_speed, cp_com_speed, cp_min_distance] = calculateModulationSpeed(speed_3, init_pose, cp_position, obs_points, 3, spourious_point);
+              ee_com_speed = calculateModulationSpeed(speed_3, init_pose, cp_position, obs_points, 3);
               init_pose =init_pose + inte_step*ee_com_speed;
               sim_result(:,i) = init_pose;
-              weight =1 - 1./(exp((5*cp_min_distance-1)*12));
-              if weight<0
-                  weight = 0;
-              end
-              q_dot_ = LWR_partial_rpinv*[cp_com_speed(1,1); cp_com_speed(2,1); cp_com_speed(3,1);0;0;0];
-              q_dot_1 = LWR_rpinv*weight*[ee_com_speed(1,1); ee_com_speed(2,1); ee_com_speed(3,1);0;0;0] ;
-              q_dot_2 = (eye(7) - weight*LWR_rpinv*jacob_LWR)*[q_dot_;0;0;0;0];
-              q_dot = q_dot_1 + 10*q_dot_2;
-              q = q_seed + inte_step*q_dot';
-              % T_new = [ 1, 0, -0.1411, init_pose(1,1);
-              %          0, 1, 0,       init_pose(2,1);
-              %          0, 0, 1,       init_pose(3,1);
-              %          0, 0, 0,       1       ];
-              %q = LWR.ikine(T_new, q_seed);
-              q_seed = q;
-              LWR.plot(q);
               %[x, y, z] = ellipsoid(init_pose(1,1), init_pose(2,1), init_pose(3,1), 0.4, 0.4, 0.4); 
               set(h, 'XData', sim_result(1, :), 'YData', sim_result(2, :), 'ZData', sim_result(3, :));
               if i < 160
